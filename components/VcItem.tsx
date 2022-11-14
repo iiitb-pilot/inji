@@ -1,6 +1,6 @@
 import React, { useContext, useRef } from 'react';
 import { useInterpret, useSelector } from '@xstate/react';
-import { Pressable, StyleSheet } from 'react-native';
+import { Pressable, Image, ImageBackground } from 'react-native';
 import { CheckBox, Icon } from 'react-native-elements';
 import { ActorRefFrom } from 'xstate';
 import {
@@ -8,53 +8,97 @@ import {
   selectVerifiableCredential,
   selectGeneratedOn,
   selectTag,
-  selectId,
   vcItemMachine,
+  selectContext,
 } from '../machines/vcItem';
 import { Column, Row, Text } from './ui';
-import { Colors } from './ui/styleUtils';
+import { Theme } from './ui/styleUtils';
 import { RotatingIcon } from './RotatingIcon';
 import { GlobalContext } from '../shared/GlobalContext';
+import { useTranslation } from 'react-i18next';
 
-const styles = StyleSheet.create({
-  title: {
-    color: Colors.Black,
-    backgroundColor: 'transparent',
-  },
-  loadingTitle: {
-    color: 'transparent',
-    backgroundColor: Colors.Grey5,
-    borderRadius: 4,
-  },
-  subtitle: {
-    backgroundColor: 'transparent',
-  },
-  loadingSubtitle: {
-    backgroundColor: Colors.Grey,
-    borderRadius: 4,
-  },
-  container: {
-    backgroundColor: Colors.White,
-  },
-  loadingContainer: {
-    backgroundColor: Colors.Grey6,
-    borderRadius: 4,
-  },
-});
+const VerifiedIcon: React.FC = () => {
+  return (
+    <Icon
+      name="check-circle"
+      color={Theme.Colors.VerifiedIcon}
+      size={14}
+      containerStyle={{ marginStart: 4, bottom: 1 }}
+    />
+  );
+};
+import { LocalizedField } from '../types/vc';
+
+const getDetails = (arg1, arg2, verifiableCredential) => {
+  if (arg1 === 'Status') {
+    return (
+      <Column>
+        <Text weight="bold" size="smaller" color={Theme.Colors.DetailsLabel}>
+          {arg1}
+        </Text>
+        <Row>
+          <Text
+            numLines={1}
+            color={Theme.Colors.Details}
+            weight="bold"
+            size="smaller"
+            style={
+              !verifiableCredential
+                ? Theme.Styles.loadingTitle
+                : Theme.Styles.subtitle
+            }>
+            {!verifiableCredential ? '' : arg2}
+          </Text>
+          {!verifiableCredential ? null : <VerifiedIcon />}
+        </Row>
+      </Column>
+    );
+  } else {
+    return (
+      <Column>
+        <Text color={Theme.Colors.DetailsLabel} weight="bold" size="smaller">
+          {arg1}
+        </Text>
+        <Text
+          numLines={1}
+          color={Theme.Colors.Details}
+          weight="bold"
+          size="smaller"
+          style={
+            !verifiableCredential
+              ? Theme.Styles.loadingTitle
+              : Theme.Styles.subtitle
+          }>
+          {!verifiableCredential ? '' : arg2}
+        </Text>
+      </Column>
+    );
+  }
+};
 
 export const VcItem: React.FC<VcItemProps> = (props) => {
   const { appService } = useContext(GlobalContext);
+  const { t } = useTranslation('VcDetails');
   const machine = useRef(
     createVcItemMachine(
       appService.getSnapshot().context.serviceRefs,
       props.vcKey
     )
   );
-  const service = useInterpret(machine.current);
-  const uin = useSelector(service, selectId);
-  const tag = useSelector(service, selectTag);
+
+  const service = useInterpret(machine.current, { devTools: __DEV__ });
+  const context = useSelector(service, selectContext);
   const verifiableCredential = useSelector(service, selectVerifiableCredential);
+
+  //Assigning the UIN and VID from the VC details to display the idtype label
+  const uin = verifiableCredential?.credentialSubject.UIN;
+  const vid = verifiableCredential?.credentialSubject.VID;
+
+  const tag = useSelector(service, selectTag);
   const generatedOn = useSelector(service, selectGeneratedOn);
+  const fullName = !verifiableCredential
+    ? ''
+    : getLocalizedField(verifiableCredential.credentialSubject.fullName);
 
   const selectableOrCheck = props.selectable ? (
     <CheckBox
@@ -63,51 +107,92 @@ export const VcItem: React.FC<VcItemProps> = (props) => {
       uncheckedIcon={<Icon name="radio-button-unchecked" />}
       onPress={() => props.onPress(service)}
     />
-  ) : (
-    <Icon name="chevron-right" />
-  );
+  ) : null;
 
   return (
     <Pressable
       onPress={() => props.onPress(service)}
-      disabled={!verifiableCredential}>
-      <Row
-        elevation={!verifiableCredential ? 0 : 2}
-        crossAlign="center"
-        margin={props.margin}
-        backgroundColor={!verifiableCredential ? Colors.Grey6 : Colors.White}
-        padding="16 24"
+      disabled={!verifiableCredential}
+      style={Theme.Styles.closeCardBgContainer}>
+      <ImageBackground
+        source={!verifiableCredential ? null : Theme.CloseCard}
+        resizeMode="stretch"
+        borderRadius={4}
         style={
-          !verifiableCredential ? styles.loadingContainer : styles.container
+          !verifiableCredential
+            ? Theme.Styles.vertloadingContainer
+            : Theme.Styles.backgroundImageContainer
         }>
-        <Column fill margin="0 24 0 0">
-          <Text
-            weight="semibold"
-            style={!verifiableCredential ? styles.loadingTitle : styles.title}
-            margin="0 0 6 0">
-            {!verifiableCredential ? '' : tag || uin}
-          </Text>
-          <Text
-            size="smaller"
-            numLines={1}
+        <Row style={Theme.Styles.homeCloseCardDetailsHeader}>
+          <Column>
+            <Text
+              color={Theme.Colors.DetailsLabel}
+              weight="bold"
+              size="smaller">
+              {t('idType')}
+            </Text>
+            <Text
+              weight="bold"
+              color={Theme.Colors.Details}
+              size="smaller"
+              style={
+                !verifiableCredential
+                  ? Theme.Styles.loadingTitle
+                  : Theme.Styles.subtitle
+              }>
+              {t('nationalCard')}
+            </Text>
+          </Column>
+          <Image
+            source={Theme.MosipLogo}
+            style={Theme.Styles.logo}
+            resizeMethod="auto"
+          />
+        </Row>
+        <Row
+          crossAlign="center"
+          margin="5 0 0 0"
+          style={!verifiableCredential ? Theme.Styles.loadingContainer : null}>
+          <Column
             style={
-              !verifiableCredential ? styles.loadingSubtitle : styles.subtitle
+              !verifiableCredential
+                ? Theme.Styles.loadingContainer
+                : Theme.Styles.closeDetails
             }>
-            {!verifiableCredential
-              ? ''
-              : getLocalizedField(
-                  verifiableCredential.credentialSubject.fullName
-                ) +
-                ' · ' +
-                generatedOn}
-          </Text>
-        </Column>
-        {verifiableCredential ? (
-          selectableOrCheck
-        ) : (
-          <RotatingIcon name="sync" color={Colors.Grey5} />
-        )}
-      </Row>
+            <Image
+              source={
+                !verifiableCredential
+                  ? Theme.ProfileIcon
+                  : { uri: context.credential.biometrics.face }
+              }
+              style={Theme.Styles.closeCardImage}
+            />
+
+            <Column margin="0 0 0 25">
+              {getDetails(t('fullName'), fullName, verifiableCredential)}
+              {!verifiableCredential
+                ? getDetails(
+                    t('idtype'),
+                    tag || uin || vid,
+                    verifiableCredential
+                  )
+                : null}
+              {uin
+                ? getDetails(t('uin'), tag || uin, verifiableCredential)
+                : null}
+              {vid ? getDetails(t('vid'), vid, verifiableCredential) : null}
+              {getDetails(t('generatedOn'), generatedOn, verifiableCredential)}
+              {getDetails(t('status'), t('valid'), verifiableCredential)}
+            </Column>
+          </Column>
+
+          {verifiableCredential ? (
+            selectableOrCheck
+          ) : (
+            <RotatingIcon name="sync" color={Theme.Colors.rotatingIcon} />
+          )}
+        </Row>
+      </ImageBackground>
     </Pressable>
   );
 };
@@ -118,6 +203,7 @@ interface VcItemProps {
   selectable?: boolean;
   selected?: boolean;
   onPress?: (vcRef?: ActorRefFrom<typeof vcItemMachine>) => void;
+  onShow?: (vcRef?: ActorRefFrom<typeof vcItemMachine>) => void;
 }
 
 function getLocalizedField(rawField: string | LocalizedField) {

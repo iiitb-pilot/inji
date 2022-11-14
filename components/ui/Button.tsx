@@ -3,46 +3,22 @@ import {
   Button as RNEButton,
   ButtonProps as RNEButtonProps,
 } from 'react-native-elements';
-import {
-  GestureResponderEvent,
-  StyleProp,
-  StyleSheet,
-  ViewStyle,
-} from 'react-native';
+import { GestureResponderEvent, StyleProp, ViewStyle } from 'react-native';
 import { Text } from './Text';
-import { Colors, spacing } from './styleUtils';
-
-const styles = StyleSheet.create({
-  fill: {
-    flex: 1,
-  },
-  solid: {
-    backgroundColor: Colors.Orange,
-  },
-  clear: {
-    backgroundColor: 'transparent',
-  },
-  outline: {
-    backgroundColor: 'transparent',
-    borderColor: Colors.Orange,
-  },
-  container: {
-    minHeight: 48,
-    flexDirection: 'row',
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-});
+import { Theme, Spacing } from './styleUtils';
 
 export const Button: React.FC<ButtonProps> = (props) => {
   const type = props.type || 'solid';
-  const buttonStyle: StyleProp<ViewStyle> = [styles.fill, styles[type]];
+  const buttonStyle: StyleProp<ViewStyle> = [
+    Theme.ButtonStyles.fill,
+    Theme.ButtonStyles[type],
+  ];
 
   const containerStyle: StyleProp<ViewStyle> = [
-    styles.container,
-    props.disabled ? styles.disabled : null,
-    props.margin ? spacing('margin', props.margin) : null,
+    Theme.ButtonStyles.container,
+    props.disabled ? Theme.ButtonStyles.disabled : null,
+    props.margin ? Theme.spacing('margin', props.margin) : null,
+    props.styles,
   ];
 
   const handleOnPress = (event: GestureResponderEvent) => {
@@ -54,17 +30,25 @@ export const Button: React.FC<ButtonProps> = (props) => {
   return (
     <RNEButton
       buttonStyle={buttonStyle}
-      containerStyle={[props.fill ? styles.fill : null, containerStyle]}
+      containerStyle={[
+        props.fill ? Theme.ButtonStyles.fill : null,
+        containerStyle,
+      ]}
       type={props.type}
       raised={props.raised}
       title={
         <Text
           weight="semibold"
           align="center"
-          color={type === 'solid' ? Colors.White : Colors.Orange}>
+          color={
+            type === 'solid' || type === 'addId'
+              ? Theme.Colors.whiteText
+              : Theme.Colors.AddIdBtnTxt
+          }>
           {props.title}
         </Text>
       }
+      style={[buttonStyle]}
       icon={props.icon}
       onPress={handleOnPress}
       loading={props.loading}
@@ -75,11 +59,12 @@ export const Button: React.FC<ButtonProps> = (props) => {
 interface ButtonProps {
   title: string;
   disabled?: boolean;
-  margin?: string;
+  margin?: Spacing;
   type?: RNEButtonProps['type'];
   onPress?: RNEButtonProps['onPress'];
   fill?: boolean;
   raised?: boolean;
   loading?: boolean;
   icon?: RNEButtonProps['icon'];
+  styles?: StyleProp<ViewStyle>;
 }

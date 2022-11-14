@@ -1,29 +1,23 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Dimensions, StyleSheet } from 'react-native';
+import { Dimensions, Platform } from 'react-native';
 import { Overlay } from 'react-native-elements/dist/overlay/Overlay';
-import { Button, Column, Row, Text } from '../../components/ui';
-import { Colors, elevation } from '../../components/ui/styleUtils';
+import { Button, Column, Text } from '../../components/ui';
+import { Theme } from '../../components/ui/styleUtils';
 import { VcItem } from '../../components/VcItem';
 import {
   SelectVcOverlayProps,
   useSelectVcOverlay,
 } from './SelectVcOverlayController';
 
-const styles = StyleSheet.create({
-  overlay: {
-    ...elevation(5),
-    backgroundColor: Colors.White,
-    padding: 0,
-  },
-});
-
 export const SelectVcOverlay: React.FC<SelectVcOverlayProps> = (props) => {
   const { t } = useTranslation('SelectVcOverlay');
   const controller = useSelectVcOverlay(props);
 
   return (
-    <Overlay isVisible={props.isVisible} overlayStyle={styles.overlay}>
+    <Overlay
+      isVisible={props.isVisible}
+      overlayStyle={Theme.SelectVcOverlayStyles.overlay}>
       <Column
         padding="24"
         width={Dimensions.get('screen').width * 0.9}
@@ -47,21 +41,28 @@ export const SelectVcOverlay: React.FC<SelectVcOverlayProps> = (props) => {
             />
           ))}
         </Column>
-        <Row margin="16 0 0 0">
+        <Button
+          title={t('share')}
+          disabled={controller.selectedIndex == null}
+          onPress={controller.onSelect}
+          margin="8 0 0 0"
+        />
+        {/* TODO: presence verification is not yet available for iOS */}
+        {Platform.OS === 'android' && (
           <Button
-            fill
-            type="clear"
-            title={t('cancel')}
-            onPress={() => props.onCancel()}
-            margin="0 8 0 0"
-          />
-          <Button
-            fill
-            title={t('share')}
+            type="outline"
+            title={t('verifyAndShare')}
             disabled={controller.selectedIndex == null}
-            onPress={controller.onSelect}
+            onPress={controller.onVerifyAndSelect}
+            margin="8 0 0 0"
           />
-        </Row>
+        )}
+        <Button
+          type="clear"
+          title={t('common:cancel')}
+          onPress={props.onCancel}
+          margin="8 0 0 0"
+        />
       </Column>
     </Overlay>
   );

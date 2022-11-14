@@ -1,11 +1,11 @@
 import NetInfo, { NetInfoStateType } from '@react-native-community/netinfo';
-import { AppState, AppStateStatus } from 'react-native';
+import { AppState, AppStateStatus, Platform } from 'react-native';
 import {
   getDeviceId,
   getDeviceName,
   getDeviceNameSync,
 } from 'react-native-device-info';
-import { EventFrom, spawn, StateFrom, send, assign } from 'xstate';
+import { EventFrom, spawn, StateFrom, send, assign, AnyState } from 'xstate';
 import { createModel } from 'xstate/lib/model';
 import { authMachine, createAuthMachine } from './auth';
 import { createSettingsMachine, settingsMachine } from './settings';
@@ -14,6 +14,8 @@ import { createVcMachine, vcMachine } from './vc';
 import { createActivityLogMachine, activityLogMachine } from './activityLog';
 import { createRequestMachine, requestMachine } from './request';
 import { createScanMachine, scanMachine } from './scan';
+import { createRevokeMachine, revokeVidsMachine } from './revoke';
+
 import { pure, respond } from 'xstate/lib/actions';
 import { AppServices } from '../shared/GlobalContext';
 import { request } from '../shared/request';
@@ -172,27 +174,39 @@ export const appMachine = model.createMachine(
           const serviceRefs = {
             ...context.serviceRefs,
           };
+
           serviceRefs.auth = spawn(
             createAuthMachine(serviceRefs),
             authMachine.id
           );
+
           serviceRefs.vc = spawn(createVcMachine(serviceRefs), vcMachine.id);
+
           serviceRefs.settings = spawn(
             createSettingsMachine(serviceRefs),
             settingsMachine.id
           );
+
           serviceRefs.activityLog = spawn(
             createActivityLogMachine(serviceRefs),
             activityLogMachine.id
           );
+
           serviceRefs.scan = spawn(
             createScanMachine(serviceRefs),
             scanMachine.id
           );
+
           serviceRefs.request = spawn(
             createRequestMachine(serviceRefs),
             requestMachine.id
           );
+
+          serviceRefs.revoke = spawn(
+            createRevokeMachine(serviceRefs),
+            revokeVidsMachine.id
+          );
+
           return serviceRefs;
         },
       }),
@@ -205,6 +219,7 @@ export const appMachine = model.createMachine(
           context.serviceRefs.activityLog.subscribe(logState);
           context.serviceRefs.scan.subscribe(logState);
           context.serviceRefs.request.subscribe(logState);
+          context.serviceRefs.revoke.subscribe(logState);
         }
       },
 
@@ -262,14 +277,18 @@ export const appMachine = model.createMachine(
         AppState.addEventListener('change', changeHandler);
 
         // android only
-        AppState.addEventListener('blur', blurHandler);
-        AppState.addEventListener('focus', focusHandler);
+        if (Platform.OS === 'android') {
+          AppState.addEventListener('blur', blurHandler);
+          AppState.addEventListener('focus', focusHandler);
+        }
 
         return () => {
           AppState.removeEventListener('change', changeHandler);
 
-          AppState.removeEventListener('blur', blurHandler);
-          AppState.removeEventListener('focus', focusHandler);
+          if (Platform.OS === 'android') {
+            AppState.removeEventListener('blur', blurHandler);
+            AppState.removeEventListener('focus', focusHandler);
+          }
         };
       },
 
@@ -325,11 +344,24 @@ export function selectIsFocused(state: State) {
   return state.matches('ready.focus');
 }
 
-export function logState(state) {
-  const data = JSON.stringify(state.event);
+export function logState(state: AnyState) {
+  const data = JSON.stringify(
+    state.event,
+    (key, value) => {
+      if (key === 'type') return undefined;
+      if (typeof value === 'string' && value.length >= 100) {
+        return value.slice(0, 100) + '...';
+      }
+      return value;
+    },
+    2
+  );
   console.log(
-    `[${getDeviceNameSync()}] ${state.machine.id}: ${state
-      .toStrings()
-      .join(' ')} ${data.length > 1000 ? data.slice(0, 1000) + '...' : data}`
+    `[${getDeviceNameSync()}] ${state.machine.id}: ${
+      state.event.type
+    } -> ${state.toStrings().pop()}\n${
+      data.length > 300 ? data.slice(0, 300) + '...' : data
+    }
+    `
   );
 }

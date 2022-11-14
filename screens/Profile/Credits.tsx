@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Dimensions, Image, StyleSheet, View } from 'react-native';
+import { Dimensions, Image, SafeAreaView, View } from 'react-native';
 import { Divider, Icon, ListItem, Overlay } from 'react-native-elements';
 import Markdown from 'react-native-simple-markdown';
 import { Button, Text, Row } from '../../components/ui';
-import { Colors } from '../../components/ui/styleUtils';
+import { Theme } from '../../components/ui/styleUtils';
 import creditsContent from '../../Credits.md';
 
 export const Credits: React.FC<CreditsProps> = (props) => {
@@ -14,20 +14,6 @@ export const Credits: React.FC<CreditsProps> = (props) => {
     'docs/images/newlogic_logo.png': require('../../docs/images/newlogic_logo.png'),
     'docs/images/id_pass_logo.png': require('../../docs/images/id_pass_logo.png'),
   };
-  const styles = StyleSheet.create({
-    buttonContainer: {
-      position: 'absolute',
-      left: 0,
-      right: 'auto',
-    },
-    view: {
-      flex: 1,
-      width: Dimensions.get('screen').width,
-    },
-    markdownView: {
-      padding: 20,
-    },
-  });
 
   const markdownStyles = {
     heading1: {
@@ -57,32 +43,34 @@ export const Credits: React.FC<CreditsProps> = (props) => {
     <ListItem bottomDivider onPress={() => setIsViewing(true)}>
       <ListItem.Content>
         <ListItem.Title>
-          <Text>{props.label}</Text>
+          <Text color={props.color}>{props.label}</Text>
         </ListItem.Title>
       </ListItem.Content>
       <Overlay
         overlayStyle={{ padding: 24 }}
         isVisible={isViewing}
         onBackdropPress={() => setIsViewing(false)}>
-        <View style={styles.view}>
-          <Row align="center" crossAlign="center" margin="0 0 10 0">
-            <View style={styles.buttonContainer}>
-              <Button
-                type="clear"
-                icon={<Icon name="chevron-left" color={Colors.Orange} />}
-                title=""
-                onPress={() => setIsViewing(false)}
-              />
+        <SafeAreaView>
+          <View style={Theme.CreditsStyles.view}>
+            <Row align="center" crossAlign="center" margin="0 0 10 0">
+              <View style={Theme.CreditsStyles.buttonContainer}>
+                <Button
+                  type="clear"
+                  icon={<Icon name="chevron-left" color={Theme.Colors.Icon} />}
+                  title=""
+                  onPress={() => setIsViewing(false)}
+                />
+              </View>
+              <Text size="small">{t('header')}</Text>
+            </Row>
+            <Divider />
+            <View style={Theme.CreditsStyles.markdownView}>
+              <Markdown rules={rules} styles={markdownStyles}>
+                {creditsContent}
+              </Markdown>
             </View>
-            <Text size="small">{t('header')}</Text>
-          </Row>
-          <Divider />
-          <View style={styles.markdownView}>
-            <Markdown rules={rules} styles={markdownStyles}>
-              {creditsContent}
-            </Markdown>
           </View>
-        </View>
+        </SafeAreaView>
       </Overlay>
     </ListItem>
   );
@@ -90,4 +78,5 @@ export const Credits: React.FC<CreditsProps> = (props) => {
 
 interface CreditsProps {
   label: string;
+  color?: string;
 }

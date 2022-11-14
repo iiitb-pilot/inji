@@ -2,13 +2,14 @@ import React from 'react';
 import {
   FlexStyle,
   StyleProp,
-  SafeAreaView,
+  View,
   ViewStyle,
   StyleSheet,
   ScrollView,
   RefreshControlProps,
+  SafeAreaView,
 } from 'react-native';
-import { elevation, ElevationLevel, spacing } from './styleUtils';
+import { Theme, ElevationLevel, Spacing } from './styleUtils';
 
 function createLayout(
   direction: FlexStyle['flexDirection'],
@@ -30,16 +31,20 @@ function createLayout(
     const styles: StyleProp<ViewStyle> = [
       layoutStyles.base,
       props.fill ? layoutStyles.fill : null,
-      props.padding ? spacing('padding', props.padding) : null,
-      props.margin ? spacing('margin', props.margin) : null,
+      props.padding ? Theme.spacing('padding', props.padding) : null,
+      props.margin ? Theme.spacing('margin', props.margin) : null,
       props.backgroundColor ? { backgroundColor: props.backgroundColor } : null,
       props.width ? { width: props.width } : null,
       props.height ? { height: props.height } : null,
       props.align ? { justifyContent: props.align } : null,
       props.crossAlign ? { alignItems: props.crossAlign } : null,
-      props.elevation ? elevation(props.elevation) : null,
+      props.elevation ? Theme.elevation(props.elevation) : null,
       props.style ? props.style : null,
+      props.pY ? { paddingVertical: props.pY } : null,
+      props.pX ? { paddingHorizontal: props.pX } : null,
     ];
+
+    const ViewType = props.safe ? SafeAreaView : View;
 
     return props.scroll ? (
       <ScrollView
@@ -48,7 +53,7 @@ function createLayout(
         {props.children}
       </ScrollView>
     ) : (
-      <SafeAreaView style={styles}>{props.children}</SafeAreaView>
+      <ViewType style={styles}>{props.children}</ViewType>
     );
   };
 
@@ -65,8 +70,8 @@ interface LayoutProps {
   fill?: boolean;
   align?: FlexStyle['justifyContent'];
   crossAlign?: FlexStyle['alignItems'];
-  padding?: string;
-  margin?: string;
+  padding?: Spacing;
+  margin?: Spacing;
   backgroundColor?: string;
   width?: number | string;
   height?: number | string;
@@ -74,4 +79,7 @@ interface LayoutProps {
   scroll?: boolean;
   refreshControl?: React.ReactElement<RefreshControlProps>;
   style?: StyleProp<ViewStyle>;
+  pY?: number | string | undefined;
+  pX?: number | string | undefined;
+  safe?: boolean;
 }

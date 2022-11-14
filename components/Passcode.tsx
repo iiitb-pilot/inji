@@ -1,28 +1,24 @@
 import React from 'react';
-import { Dimensions, Modal as RNModal, StyleSheet } from 'react-native';
+import { Dimensions, Modal as RNModal } from 'react-native';
 import { Icon } from 'react-native-elements';
 import { PasscodeVerify } from '../components/PasscodeVerify';
 import { Column, Text } from '../components/ui';
-import { Colors } from '../components/ui/styleUtils';
-
-const styles = StyleSheet.create({
-  modal: {
-    width: Dimensions.get('screen').width,
-    height: Dimensions.get('screen').height,
-  },
-});
+import { Theme } from '../components/ui/styleUtils';
 
 export const Passcode: React.FC<PasscodeProps> = (props) => {
   return (
     <RNModal
       animationType="slide"
-      style={styles.modal}
+      style={Theme.PasscodeStyles.modal}
       visible={true}
       onRequestClose={props.onDismiss}>
-      <Column fill padding="32" backgroundColor={Colors.White}>
-        <Icon name="lock" color={Colors.Orange} size={60} />
+      <Column
+        fill
+        padding="32"
+        backgroundColor={Theme.Colors.whiteBackgroundColor}>
+        <Icon name="lock" color={Theme.Colors.Icon} size={60} />
         <Column fill align="space-between" width="100%">
-          <Text align="center">Enter your passcode</Text>
+          <Text align="center">{props.message || 'Enter your passcode'}</Text>
           <PasscodeVerify
             onSuccess={props.onSuccess}
             onError={props.onError}
@@ -30,7 +26,7 @@ export const Passcode: React.FC<PasscodeProps> = (props) => {
           />
         </Column>
         <Column fill>
-          <Text align="center" color={Colors.Red}>
+          <Text align="center" color={Theme.Colors.errorMessage}>
             {props.error}
           </Text>
         </Column>
@@ -40,6 +36,7 @@ export const Passcode: React.FC<PasscodeProps> = (props) => {
 };
 
 interface PasscodeProps {
+  message?: string;
   error: string;
   storedPasscode: string;
   onSuccess: () => void;
