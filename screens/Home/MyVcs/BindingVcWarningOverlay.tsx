@@ -1,14 +1,12 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
-import { Dimensions, Image } from 'react-native';
-import { Overlay } from 'react-native-elements';
-import { Button, Column, Text, Row } from '../../../components/ui';
-import { Theme } from '../../../components/ui/styleUtils';
+import {useTranslation} from 'react-i18next';
+import {Dimensions, Image} from 'react-native';
+import {Overlay} from 'react-native-elements';
+import {Button, Column, Text, Row} from '../../../components/ui';
+import {Theme} from '../../../components/ui/styleUtils';
 
-export const BindingVcWarningOverlay: React.FC<QrLoginWarningProps> = (
-  props
-) => {
-  const { t } = useTranslation('VcDetails');
+export const BindingVcWarningOverlay: React.FC<QrLoginWarningProps> = props => {
+  const {t} = useTranslation('BindingVcWarningOverlay');
 
   return (
     <Overlay
@@ -18,8 +16,9 @@ export const BindingVcWarningOverlay: React.FC<QrLoginWarningProps> = (
         align="space-between"
         crossAlign="center"
         padding={'10'}
-        width={Dimensions.get('screen').width * 0.8}>
-        <Row align="center" crossAlign="center" margin={'0 80 0 0'}>
+        width={Dimensions.get('screen').width * 0.8}
+        height={Dimensions.get('screen').height * 0}>
+        <Row align="center" crossAlign="center" margin={'0 80 -10 0'}>
           <Image source={Theme.WarningLogo} resizeMethod="auto" />
           <Text
             margin={'0 0 0 -80'}
@@ -29,22 +28,31 @@ export const BindingVcWarningOverlay: React.FC<QrLoginWarningProps> = (
           </Text>
         </Row>
 
-        <Text size="regular" weight="bold">
-          {t('Alert')}
-        </Text>
+        <Column crossAlign="center" margin="0 0 30 0">
+          <Text testID="alert" weight="semibold">
+            {t('alert')}
+          </Text>
 
-        <Text align="center" size="smaller">
-          {t('BindingWarning')}
-        </Text>
+          <Text
+            testID="warningMsg"
+            align="center"
+            size="small"
+            weight="semibold"
+            color={Theme.Colors.GrayText}>
+            {t('BindingWarning')}
+          </Text>
+        </Column>
 
         <Button
-          margin={'10 0 0 0'}
-          type="radius"
-          title={t('yes_confirm')}
+          testID="yesConfirm"
+          margin={'30 0 0 0'}
+          type="gradient"
+          title={t('yesConfirm')}
           onPress={props.onConfirm}
         />
 
         <Button
+          testID="no"
           margin={'10 0 0 0'}
           type="clear"
           title={t('no')}

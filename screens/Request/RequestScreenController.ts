@@ -1,86 +1,76 @@
-import { useSelector } from '@xstate/react';
-import { useContext, useEffect } from 'react';
-import { selectIsActive, selectIsFocused } from '../../machines/app';
+import {useSelector} from '@xstate/react';
+import {useContext, useEffect} from 'react';
+import {selectIsActive, selectIsFocused} from '../../machines/app';
+import {GlobalContext} from '../../shared/GlobalContext';
+import BluetoothStateManager from 'react-native-bluetooth-state-manager';
+import {useTranslation} from 'react-i18next';
+import {
+  selectIsCheckingBluetoothService,
+  selectIsWaitingForConnection,
+  selectIsWaitingForVc,
+  selectIsWaitingForVcTimeout,
+  selectOpenId4VpUri,
+  selectSenderInfo,
+  selectSharingProtocol,
+} from '../../machines/bleShare/request/selectors';
+import {
+  selectIsBluetoothDenied,
+  selectIsCancelling,
+  selectIsNearByDevicesPermissionDenied,
+  selectIsReviewing,
+  selectReadyForBluetoothStateCheck,
+} from '../../machines/bleShare/commonSelectors';
 import {
   RequestEvents,
-  selectIsBluetoothDenied,
-  selectConnectionParams,
-  selectIsReviewing,
-  selectSenderInfo,
-  selectIsWaitingForConnection,
-  selectIsExchangingDeviceInfo,
-  selectIsWaitingForVc,
-  selectSharingProtocol,
-  selectIsExchangingDeviceInfoTimeout,
-  selectIsWaitingForVcTimeout,
-  selectIsCheckingBluetoothService,
-  selectIsCancelling,
-  selectIsOffline,
-} from '../../machines/request';
-import { selectVcLabel } from '../../machines/settings';
-import { GlobalContext } from '../../shared/GlobalContext';
-import BluetoothStateManager from 'react-native-bluetooth-state-manager';
-import { useTranslation } from 'react-i18next';
+  selectIsMinimumStorageLimitReached,
+} from '../../machines/bleShare/request/requestMachine';
 
 export function useRequestScreen() {
-  const { t } = useTranslation('RequestScreen');
-  const { appService } = useContext(GlobalContext);
-  const settingsService = appService.children.get('settings');
-  const vcLabel = useSelector(settingsService, selectVcLabel);
+  const {t} = useTranslation('RequestScreen');
+  const {appService} = useContext(GlobalContext);
 
   const requestService = appService.children.get('request');
   const isActive = useSelector(appService, selectIsActive);
   const isFocused = useSelector(appService, selectIsFocused);
+  const isReadyForBluetoothStateCheck = useSelector(
+    requestService,
+    selectReadyForBluetoothStateCheck,
+  );
   const isBluetoothDenied = useSelector(
     requestService,
-    selectIsBluetoothDenied
+    selectIsBluetoothDenied,
+  );
+  const isNearByDevicesPermissionDenied = useSelector(
+    requestService,
+    selectIsNearByDevicesPermissionDenied,
   );
   const isWaitingForConnection = useSelector(
     requestService,
-    selectIsWaitingForConnection
+    selectIsWaitingForConnection,
   );
-  const isExchangingDeviceInfo = useSelector(
-    requestService,
-    selectIsExchangingDeviceInfo
-  );
-  const isExchangingDeviceInfoTimeout = useSelector(
-    requestService,
-    selectIsExchangingDeviceInfoTimeout
-  );
+
   const isWaitingForVc = useSelector(requestService, selectIsWaitingForVc);
   const isWaitingForVcTimeout = useSelector(
     requestService,
-    selectIsWaitingForVcTimeout
+    selectIsWaitingForVcTimeout,
   );
-  const isOffline = useSelector(requestService, selectIsOffline);
 
+  let statusTitle = '';
   let statusMessage = '';
   let statusHint = '';
-  let isStatusCancellable = false;
   if (isWaitingForConnection) {
     statusMessage = t('status.waitingConnection');
-  } else if (isExchangingDeviceInfo) {
-    statusMessage = t('status.exchangingDeviceInfo.message');
-  } else if (isOffline) {
-    statusMessage = t('status.offline.message');
-  } else if (isExchangingDeviceInfoTimeout) {
-    statusMessage = t('status.exchangingDeviceInfo.message');
-    statusHint = t('status.exchangingDeviceInfo.timeoutHint');
-    isStatusCancellable = true;
   } else if (isWaitingForVc) {
-    statusMessage = t('status.connected.message', {
-      vcLabel: vcLabel.singular,
-    });
+    statusTitle = t('status.sharing.title');
+    statusMessage = t('status.connected.message');
   } else if (isWaitingForVcTimeout) {
-    statusMessage = t('status.connected.message', {
-      vcLabel: vcLabel.singular,
-    });
+    statusTitle = t('status.sharing.title');
+    statusMessage = t('status.connected.message');
     statusHint = t('status.connected.timeoutHint');
-    isStatusCancellable = true;
   }
 
   useEffect(() => {
-    BluetoothStateManager.getState().then((bluetoothState) => {
+    BluetoothStateManager.getState().then(bluetoothState => {
       if (bluetoothState === 'PoweredOn' && isBluetoothDenied) {
         requestService.send(RequestEvents.SCREEN_FOCUS());
       }
@@ -88,22 +78,26 @@ export function useRequestScreen() {
   }, [isFocused, isActive]);
 
   return {
-    vcLabel,
+    statusTitle,
     statusMessage,
     statusHint,
     sharingProtocol: useSelector(requestService, selectSharingProtocol),
 
     isWaitingForConnection,
-    isExchangingDeviceInfo,
-
-    isStatusCancellable,
     isWaitingForVc,
+    isWaitingForVcTimeout,
     isBluetoothDenied,
+    isNearByDevicesPermissionDenied,
+    isReadyForBluetoothStateCheck,
     isCheckingBluetoothService: useSelector(
       requestService,
-      selectIsCheckingBluetoothService
+      selectIsCheckingBluetoothService,
     ),
-    connectionParams: useSelector(requestService, selectConnectionParams),
+    isMinimumStorageLimitReached: useSelector(
+      requestService,
+      selectIsMinimumStorageLimitReached,
+    ),
+    openId4VpUri: useSelector(requestService, selectOpenId4VpUri),
     senderInfo: useSelector(requestService, selectSenderInfo),
     isReviewing: useSelector(requestService, selectIsReviewing),
     isCancelling: useSelector(requestService, selectIsCancelling),
@@ -113,8 +107,6 @@ export function useRequestScreen() {
     ACCEPT: () => requestService.send(RequestEvents.ACCEPT()),
     REJECT: () => requestService.send(RequestEvents.REJECT()),
     REQUEST: () => requestService.send(RequestEvents.SCREEN_FOCUS()),
-    SWITCH_PROTOCOL: (value: boolean) =>
-      requestService.send(RequestEvents.SWITCH_PROTOCOL(value)),
     GOTO_SETTINGS: () => requestService.send(RequestEvents.GOTO_SETTINGS()),
   };
 }

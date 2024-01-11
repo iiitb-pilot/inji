@@ -3,25 +3,25 @@ import {
   BottomTabNavigationOptions,
   BottomTabScreenProps,
 } from '@react-navigation/bottom-tabs';
-import { HomeScreen } from '../screens/Home/HomeScreen';
-import { ProfileScreen } from '../screens/Profile/ProfileScreen';
-import { RootStackParamList } from './index';
-import { RequestLayout } from '../screens/Request/RequestLayout';
-import { ScanLayout } from '../screens/Scan/ScanLayout';
+import {Image} from 'react-native';
+import {RootStackParamList} from './index';
+import {ScanLayout} from '../screens/Scan/ScanLayout';
+import {HistoryScreen} from '../screens/History/HistoryScreen';
 import i18n from '../i18n';
-import { Platform } from 'react-native';
-import { isGoogleNearbyEnabled } from '../lib/smartshare';
+import {BOTTOM_TAB_ROUTES} from './routesConstants';
+import {HomeScreenLayout} from '../screens/HomeScreenLayout';
 
 const home: TabScreen = {
-  name: 'Home',
-  component: HomeScreen,
+  name: BOTTOM_TAB_ROUTES.home,
+  component: HomeScreenLayout,
   icon: 'home',
   options: {
-    title: i18n.t('MainLayout:home'),
+    headerTitle: '',
+    headerShown: false,
   },
 };
-const scan: TabScreen = {
-  name: 'Scan',
+export const scan: TabScreen = {
+  name: BOTTOM_TAB_ROUTES.scan,
   component: ScanLayout,
   icon: 'qr-code-scanner',
   options: {
@@ -29,41 +29,26 @@ const scan: TabScreen = {
     headerShown: false,
   },
 };
-const request: TabScreen = {
-  name: 'Request',
-  component: RequestLayout,
-  icon: 'file-download',
+
+const history: TabScreen = {
+  name: BOTTOM_TAB_ROUTES.history,
+  component: HistoryScreen,
+  icon: 'history',
   options: {
-    title: i18n.t('MainLayout:request'),
-    headerShown: false,
-  },
-};
-const settings: TabScreen = {
-  name: 'Settings',
-  component: ProfileScreen,
-  icon: 'settings',
-  options: {
-    title: i18n.t('MainLayout:Settings'),
+    title: i18n.t('MainLayout:history'),
+    headerRight: null,
   },
 };
 
 export const mainRoutes: TabScreen[] = [];
 mainRoutes.push(home);
 mainRoutes.push(scan);
-
-if (Platform.OS !== 'ios' || isGoogleNearbyEnabled) {
-  mainRoutes.push(request);
-}
-
-mainRoutes.push(settings);
+mainRoutes.push(history);
 
 export type MainBottomTabParamList = {
-  Home: {
-    activeTab: number;
-  };
-  Scan: undefined;
-  Request: undefined;
-  Settings: undefined;
+  home: undefined;
+  scan: undefined;
+  history: undefined;
 };
 
 export interface TabScreen {
@@ -79,5 +64,5 @@ export type MainRouteProps = BottomTabScreenProps<
 
 export type HomeRouteProps = BottomTabScreenProps<
   MainBottomTabParamList & RootStackParamList,
-  'Home'
+  'home'
 >;

@@ -1,10 +1,8 @@
-import { Camera, CameraCapturedPicture, PermissionResponse } from 'expo-camera';
-import { CameraType, Face, ImageType } from 'expo-camera/build/Camera.types';
-import { Linking } from 'react-native';
-import { assign, EventFrom, StateFrom } from 'xstate';
-import { createModel } from 'xstate/lib/model';
-
-import mosipFaceAuth from '../lib/mosip-inji-face-sdk/faceAuth';
+import {Camera, CameraCapturedPicture, PermissionResponse} from 'expo-camera';
+import {CameraType, Face, ImageType} from 'expo-camera/build/Camera.types';
+import {Linking} from 'react-native';
+import {assign, EventFrom, StateFrom} from 'xstate';
+import {createModel} from 'xstate/lib/model';
 
 const model = createModel(
   {
@@ -19,15 +17,15 @@ const model = createModel(
   },
   {
     events: {
-      READY: (cameraRef: Camera) => ({ cameraRef }),
+      READY: (cameraRef: Camera) => ({cameraRef}),
       FLIP_CAMERA: () => ({}),
       CAPTURE: () => ({}),
-      DENIED: (response: PermissionResponse) => ({ response }),
+      DENIED: (response: PermissionResponse) => ({response}),
       GRANTED: () => ({}),
       OPEN_SETTINGS: () => ({}),
       APP_FOCUSED: () => ({}),
     },
-  }
+  },
 );
 
 export const FaceScannerEvents = model.events;
@@ -176,7 +174,7 @@ export const createFaceScannerMachine = (vcImage: string) =>
         }),
 
         flipWhichCamera: model.assign({
-          whichCamera: (context) =>
+          whichCamera: context =>
             context.whichCamera === Camera.Constants.Type.front
               ? Camera.Constants.Type.back
               : Camera.Constants.Type.front,
@@ -190,7 +188,7 @@ export const createFaceScannerMachine = (vcImage: string) =>
       },
 
       services: {
-        checkPermission: () => async (callback) => {
+        checkPermission: () => async callback => {
           const result = await Camera.getCameraPermissionsAsync();
           if (result.granted) {
             callback(FaceScannerEvents.GRANTED());
@@ -199,7 +197,7 @@ export const createFaceScannerMachine = (vcImage: string) =>
           }
         },
 
-        requestPermission: () => async (callback) => {
+        requestPermission: () => async callback => {
           const result = await Camera.requestCameraPermissionsAsync();
           if (result.granted) {
             callback(FaceScannerEvents.GRANTED());
@@ -208,19 +206,20 @@ export const createFaceScannerMachine = (vcImage: string) =>
           }
         },
 
-        captureImage: (context) => {
+        captureImage: context => {
           return context.cameraRef.takePictureAsync({
             base64: true,
             imageType: ImageType.jpg,
           });
         },
 
-        verifyImage: (context) => {
+        verifyImage: context => {
           context.cameraRef.pausePreview();
           const rxDataURI =
             /data:(?<mime>[\w/\-.]+);(?<encoding>\w+),(?<data>.*)/;
           const matches = rxDataURI.exec(vcImage).groups;
-          return mosipFaceAuth(context.capturedImage.base64, matches.data);
+          // ToDo - compare faces to do face match and return the match response
+          return true;
         },
       },
 
@@ -231,7 +230,7 @@ export const createFaceScannerMachine = (vcImage: string) =>
 
         doesFaceMatch: (_context, event) => event.data,
       },
-    }
+    },
   );
 
 type State = StateFrom<ReturnType<typeof createFaceScannerMachine>>;

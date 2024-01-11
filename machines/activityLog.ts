@@ -1,8 +1,9 @@
-import { EventFrom, send, sendParent, StateFrom } from 'xstate';
-import { createModel } from 'xstate/lib/model';
-import { AppServices } from '../shared/GlobalContext';
-import { ACTIVITY_LOG_STORE_KEY } from '../shared/constants';
-import { StoreEvents } from './store';
+import {EventFrom, send, sendParent, StateFrom} from 'xstate';
+import {createModel} from 'xstate/lib/model';
+import {AppServices} from '../shared/GlobalContext';
+import {ACTIVITY_LOG_STORE_KEY} from '../shared/constants';
+import {StoreEvents} from './store';
+import {ActivityLog} from '../components/ActivityLogEvent';
 
 const model = createModel(
   {
@@ -11,11 +12,11 @@ const model = createModel(
   },
   {
     events: {
-      STORE_RESPONSE: (response: unknown) => ({ response }),
-      LOG_ACTIVITY: (log: ActivityLog | ActivityLog[]) => ({ log }),
+      STORE_RESPONSE: (response: unknown) => ({response}),
+      LOG_ACTIVITY: (log: ActivityLog | ActivityLog[]) => ({log}),
       REFRESH: () => ({}),
     },
-  }
+  },
 );
 
 export const ActivityLogEvents = model.events;
@@ -81,7 +82,7 @@ export const activityLogMachine =
     {
       actions: {
         loadActivities: send(StoreEvents.GET(ACTIVITY_LOG_STORE_KEY), {
-          to: (context) => context.serviceRefs.store,
+          to: context => context.serviceRefs.store,
         }),
 
         setActivities: model.assign({
@@ -90,7 +91,7 @@ export const activityLogMachine =
 
         storeActivity: send(
           (_, event) => StoreEvents.PREPEND(ACTIVITY_LOG_STORE_KEY, event.log),
-          { to: (context) => context.serviceRefs.store }
+          {to: context => context.serviceRefs.store},
         ),
 
         prependActivity: model.assign({
@@ -100,7 +101,7 @@ export const activityLogMachine =
               : [event.response, ...context.activities]) as ActivityLog[],
         }),
       },
-    }
+    },
   );
 
 export function createActivityLogMachine(serviceRefs: AppServices) {
@@ -110,20 +111,13 @@ export function createActivityLogMachine(serviceRefs: AppServices) {
   });
 }
 
-export interface ActivityLog {
-  _vcKey: string;
-  timestamp: number;
-  deviceName: string;
-  vcLabel: string;
-  type: ActivityLogType;
-}
-
 export type ActivityLogType =
   | 'VC_SHARED'
   | 'VC_RECEIVED'
   | 'VC_RECEIVED_NOT_SAVED'
   | 'VC_DELETED'
   | 'VC_DOWNLOADED'
+  | 'VC_UPDATED'
   | 'VC_REVOKED'
   | 'VC_SHARED_WITH_VERIFICATION_CONSENT'
   | 'VC_RECEIVED_WITH_PRESENCE_VERIFIED'
@@ -132,7 +126,9 @@ export type ActivityLogType =
   | 'PRESENCE_VERIFICATION_FAILED'
   | 'QRLOGIN_SUCCESFULL'
   | 'WALLET_BINDING_SUCCESSFULL'
-  | 'WALLET_BINDING_FAILURE';
+  | 'WALLET_BINDING_FAILURE'
+  | 'VC_REMOVED'
+  | 'TAMPERED_VC_REMOVED';
 
 type State = StateFrom<typeof activityLogMachine>;
 

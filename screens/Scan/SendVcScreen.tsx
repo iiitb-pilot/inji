@@ -1,31 +1,38 @@
-import React, { useContext, useEffect, useRef } from 'react';
-import { CheckBox, Input } from 'react-native-elements';
-import { useTranslation } from 'react-i18next';
-import { useFocusEffect } from '@react-navigation/native';
-import { DeviceInfoList } from '../../components/DeviceInfoList';
-import { Button, Column, Row } from '../../components/ui';
-import { Theme } from '../../components/ui/styleUtils';
-import { MessageOverlay } from '../../components/MessageOverlay';
-import { useSendVcScreen } from './SendVcScreenController';
-import { VerifyIdentityOverlay } from '../VerifyIdentityOverlay';
-import { VcItem } from '../../components/VcItem';
-import { I18nManager, BackHandler } from 'react-native';
-import { useInterpret } from '@xstate/react';
-import { createVcItemMachine } from '../../machines/vcItem';
-import { GlobalContext } from '../../shared/GlobalContext';
+import React, {useContext, useEffect, useRef} from 'react';
+import {Input} from 'react-native-elements';
+import {useTranslation} from 'react-i18next';
+import {Button, Column, Row, Text} from '../../components/ui';
+import {Theme} from '../../components/ui/styleUtils';
+import {MessageOverlay} from '../../components/MessageOverlay';
+import {useSendVcScreen} from './SendVcScreenController';
+import {VerifyIdentityOverlay} from '../VerifyIdentityOverlay';
+import {BackHandler, I18nManager} from 'react-native';
+import {useInterpret} from '@xstate/react';
+import {createExistingMosipVCItemMachine} from '../../machines/VCItemMachine/ExistingMosipVCItem/ExistingMosipVCItemMachine';
+import {GlobalContext} from '../../shared/GlobalContext';
+import {useFocusEffect} from '@react-navigation/native';
+import {VcItemContainer} from '../../components/VC/VcItemContainer';
+import {VCMetadata} from '../../shared/VCMetadata';
+import {createEsignetMosipVCItemMachine} from '../../machines/VCItemMachine/EsignetMosipVCItem/EsignetMosipVCItemMachine';
 
 export const SendVcScreen: React.FC = () => {
-  const { t } = useTranslation('SendVcScreen');
-  const { appService } = useContext(GlobalContext);
+  const {t} = useTranslation('SendVcScreen');
+  const {appService} = useContext(GlobalContext);
   const controller = useSendVcScreen();
   let service;
 
-  if (controller.vcKeys?.length > 0) {
+  if (controller.shareableVcsMetadata?.length > 0) {
+    const vcMetadata = controller.shareableVcsMetadata[0];
     const firstVCMachine = useRef(
-      createVcItemMachine(
-        appService.getSnapshot().context.serviceRefs,
-        controller.vcKeys[0]
-      )
+      VCMetadata.fromVC(vcMetadata).isFromOpenId4VCI()
+        ? createEsignetMosipVCItemMachine(
+            appService.getSnapshot().context.serviceRefs,
+            vcMetadata,
+          )
+        : createExistingMosipVCItemMachine(
+            appService.getSnapshot().context.serviceRefs,
+            vcMetadata,
+          ),
     );
 
     service = useInterpret(firstVCMachine.current);
@@ -43,11 +50,11 @@ export const SendVcScreen: React.FC = () => {
 
       const disableBackHandler = BackHandler.addEventListener(
         'hardwareBackPress',
-        onBackPress
+        onBackPress,
       );
 
       return () => disableBackHandler.remove();
-    }, [])
+    }, []),
   );
 
   const reasonLabel = t('reasonForSharing');
@@ -55,62 +62,55 @@ export const SendVcScreen: React.FC = () => {
   return (
     <React.Fragment>
       <Column fill backgroundColor={Theme.Colors.lightGreyBackgroundColor}>
-        <Column padding="16 0" scroll>
-          <DeviceInfoList of="receiver" deviceInfo={controller.receiverInfo} />
-
-          <Column padding="24">
-            <Input
-              value={controller.reason ? controller.reason : ''}
-              placeholder={!controller.reason ? reasonLabel : ''}
-              label={controller.reason ? reasonLabel : ''}
-              labelStyle={{ textAlign: 'left' }}
-              onChangeText={controller.UPDATE_REASON}
-              containerStyle={{ marginBottom: 24 }}
-              inputStyle={{ textAlign: I18nManager.isRTL ? 'right' : 'left' }}
-              selectionColor={Theme.Colors.Cursor}
-            />
-          </Column>
-          <Column>
-            {controller.vcKeys.map((vcKey, index) => (
-              <VcItem
-                key={vcKey}
-                vcKey={vcKey}
-                margin="0 2 8 2"
-                onPress={controller.SELECT_VC_ITEM(index)}
-                selectable
-                selected={index === controller.selectedIndex}
-                activeTab={'sharingVcScreen'}
-              />
-            ))}
-          </Column>
+        <Column>
+          <Column
+            padding="24 19 14 19"
+            backgroundColor={Theme.Colors.whiteBackgroundColor}
+            style={{position: 'relative'}}></Column>
+          <Text
+            margin="15 0 13 24"
+            weight="bold"
+            color={Theme.Colors.textValue}
+            style={{position: 'relative'}}>
+            {t('pleaseSelectAnId')}
+          </Text>
         </Column>
-        <Column
-          backgroundColor={Theme.Colors.whiteBackgroundColor}
-          padding="16 24"
-          margin="2 0 0 0"
-          elevation={2}>
+        <Column scroll>
+          {controller.shareableVcsMetadata.map((vcMetadata, index) => (
+            <VcItemContainer
+              key={vcMetadata.getVcKey()}
+              vcMetadata={vcMetadata}
+              margin="0 2 8 2"
+              onPress={controller.SELECT_VC_ITEM(index)}
+              selectable
+              selected={index === controller.selectedIndex}
+              isSharingVc
+            />
+          ))}
+        </Column>
+        {!controller.selectedVc.shouldVerifyPresence && (
           <Button
-            title={t('acceptRequest')}
-            margin="12 0 12 0"
+            type="gradient"
+            title={t('acceptRequestAndVerify')}
+            styles={{marginTop: 12}}
             disabled={controller.selectedIndex == null}
-            onPress={controller.ACCEPT_REQUEST}
+            onPress={controller.VERIFY_AND_ACCEPT_REQUEST}
           />
-          {!controller.selectedVc.shouldVerifyPresence && (
-            <Button
-              type="outline"
-              title={t('acceptRequestAndVerify')}
-              margin="12 0 12 0"
-              disabled={controller.selectedIndex == null}
-              onPress={controller.VERIFY_AND_ACCEPT_REQUEST}
-            />
-          )}
-          <Button
-            type="clear"
-            loading={controller.isCancelling}
-            title={t('reject')}
-            onPress={controller.CANCEL}
-          />
-        </Column>
+        )}
+
+        <Button
+          type="gradient"
+          title={t('acceptRequest')}
+          disabled={controller.selectedIndex == null}
+          onPress={controller.ACCEPT_REQUEST}
+        />
+
+        <Button
+          type="clear"
+          loading={controller.isCancelling}
+          title={t('reject')}
+          onPress={controller.CANCEL}
+        />
       </Column>
 
       <VerifyIdentityOverlay

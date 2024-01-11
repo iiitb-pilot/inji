@@ -1,11 +1,19 @@
-import React from 'react';
-import { Modal as RNModal } from 'react-native';
-import { Icon } from 'react-native-elements';
-import { PasscodeVerify } from '../components/PasscodeVerify';
-import { Column, Text } from '../components/ui';
-import { Theme } from '../components/ui/styleUtils';
+import React, {useEffect} from 'react';
+import {Modal as RNModal} from 'react-native';
+import {Icon} from 'react-native-elements';
+import {PasscodeVerify} from '../components/PasscodeVerify';
+import {Column, Text} from '../components/ui';
+import {Theme} from '../components/ui/styleUtils';
+import {
+  getImpressionEventData,
+  sendImpressionEvent,
+} from '../shared/telemetry/TelemetryUtils';
 
-export const Passcode: React.FC<PasscodeProps> = (props) => {
+export const Passcode: React.FC<PasscodeProps> = props => {
+  useEffect(() => {
+    sendImpressionEvent(getImpressionEventData('App Login', 'Passcode'));
+  }, []);
+
   return (
     <RNModal
       animationType="slide"
@@ -23,6 +31,7 @@ export const Passcode: React.FC<PasscodeProps> = (props) => {
             onSuccess={props.onSuccess}
             onError={props.onError}
             passcode={props.storedPasscode}
+            salt={props.salt}
           />
         </Column>
         <Column fill>
@@ -39,6 +48,7 @@ interface PasscodeProps {
   message?: string;
   error: string;
   storedPasscode: string;
+  salt: string;
   onSuccess: () => void;
   onError: (value: string) => void;
   onDismiss: () => void;

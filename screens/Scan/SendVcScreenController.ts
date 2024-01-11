@@ -1,26 +1,26 @@
-import { useSelector } from '@xstate/react';
-import { useContext, useState } from 'react';
-import { ActorRefFrom } from 'xstate';
+import {useSelector} from '@xstate/react';
+import {useContext, useState} from 'react';
+import {ActorRefFrom} from 'xstate';
+import {selectShareableVcsMetadata} from '../../machines/vc';
+import {ExistingMosipVCItemMachine} from '../../machines/VCItemMachine/ExistingMosipVCItem/ExistingMosipVCItemMachine';
+import {GlobalContext} from '../../shared/GlobalContext';
 import {
-  ScanEvents,
+  selectIsSelectingVc,
   selectReason,
   selectReceiverInfo,
-  selectIsSelectingVc,
-  selectVcName,
-  selectIsVerifyingIdentity,
-  selectIsInvalidIdentity,
   selectSelectedVc,
+  selectVcName,
+} from '../../machines/bleShare/scan/selectors';
+import {
   selectIsCancelling,
-} from '../../machines/scan';
-import { selectVcLabel } from '../../machines/settings';
-import { selectShareableVcs } from '../../machines/vc';
-import { vcItemMachine } from '../../machines/vcItem';
-import { GlobalContext } from '../../shared/GlobalContext';
+  selectIsInvalidIdentity,
+  selectIsVerifyingIdentity,
+} from '../../machines/bleShare/commonSelectors';
+import {ScanEvents} from '../../machines/bleShare/scan/scanMachine';
 
 export function useSendVcScreen() {
-  const { appService } = useContext(GlobalContext);
+  const {appService} = useContext(GlobalContext);
   const scanService = appService.children.get('scan');
-  const settingsService = appService.children.get('settings');
   const vcService = appService.children.get('vc');
 
   const CANCEL = () => scanService.send(ScanEvents.CANCEL());
@@ -32,17 +32,17 @@ export function useSendVcScreen() {
     TOGGLE_USER_CONSENT: () =>
       scanService.send(ScanEvents.TOGGLE_USER_CONSENT()),
     SELECT_VC_ITEM:
-      (index: number) => (vcRef: ActorRefFrom<typeof vcItemMachine>) => {
+      (index: number) =>
+      (vcRef: ActorRefFrom<typeof ExistingMosipVCItemMachine>) => {
         setSelectedIndex(index);
-        const { serviceRefs, ...vcData } = vcRef.getSnapshot().context;
+        const {serviceRefs, ...vcData} = vcRef.getSnapshot().context;
         scanService.send(ScanEvents.SELECT_VC(vcData));
       },
 
     receiverInfo: useSelector(scanService, selectReceiverInfo),
     reason: useSelector(scanService, selectReason),
     vcName: useSelector(scanService, selectVcName),
-    vcLabel: useSelector(settingsService, selectVcLabel),
-    vcKeys: useSelector(vcService, selectShareableVcs),
+    shareableVcsMetadata: useSelector(vcService, selectShareableVcsMetadata),
     selectedVc: useSelector(scanService, selectSelectedVc),
 
     isSelectingVc: useSelector(scanService, selectIsSelectingVc),
